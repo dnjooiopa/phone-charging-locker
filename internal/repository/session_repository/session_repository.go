@@ -106,6 +106,44 @@ func (p *pgDB) UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, 
 	return err
 }
 
+func (p *pgDB) FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error) {
+	var session domain.Session
+	err := pgctx.QueryRow(ctx, `
+		SELECT
+			id,
+			locker_id,
+			status,
+			qr_code_data,
+			payment_hash,
+			amount,
+			started_at,
+			expired_at,
+			created_at,
+			updated_at
+		FROM session
+		WHERE payment_hash = $1
+	`, paymentHash).Scan(
+		&session.ID,
+		&session.LockerID,
+		&session.Status,
+		&session.QRCodeData,
+		&session.PaymentHash,
+		&session.Amount,
+		&session.StartedAt,
+		&session.ExpiredAt,
+		&session.CreatedAt,
+		&session.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, usecase.ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	return &session, nil
+}
+
 func (p *pgDB) FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error) {
 	rows, err := pgctx.Query(ctx, `
 		SELECT

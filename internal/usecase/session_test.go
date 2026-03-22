@@ -75,6 +75,15 @@ func (m *MockSessionRepository) UpdatePaymentConfirmed(ctx context.Context, id i
 	return args.Error(0)
 }
 
+func (m *MockSessionRepository) FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error) {
+	args := m.Called(ctx, paymentHash)
+	var r0 *domain.Session
+	if args.Get(0) != nil {
+		r0 = args.Get(0).(*domain.Session)
+	}
+	return r0, args.Error(1)
+}
+
 func (m *MockSessionRepository) FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error) {
 	args := m.Called(ctx, now)
 	var r0 []*domain.Session

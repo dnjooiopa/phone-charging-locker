@@ -69,6 +69,10 @@ func ErrorHandler() gin.HandlerFunc {
 				statusCode = http.StatusBadGateway
 				errorCode = "INVOICE_CREATION_FAILED"
 				message = "failed to create payment invoice"
+			case usecase.ErrUnsupportedWebhookType:
+				statusCode = http.StatusBadRequest
+				errorCode = "UNSUPPORTED_WEBHOOK_TYPE"
+				message = "unsupported webhook type"
 			default:
 				statusCode = http.StatusInternalServerError
 				errorCode = "INTERNAL_SERVER_ERROR"

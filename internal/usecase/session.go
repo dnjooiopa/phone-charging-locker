@@ -130,6 +130,50 @@ func (u *Usecase) ConfirmPayment(ctx context.Context, p *ConfirmPaymentParams) (
 	return session, nil
 }
 
+type WebhookPayload struct {
+	Type        string `json:"type"`
+	Timestamp   int64  `json:"timestamp"`
+	AmountSat   int64  `json:"amountSat"`
+	PaymentHash string `json:"paymentHash"`
+	ExternalID  *string `json:"externalId"`
+	PayerNote   *string `json:"payerNote"`
+	PayerKey    *string `json:"payerKey"`
+}
+
+func (u *Usecase) HandleWebhook(ctx context.Context, payload *WebhookPayload) (*domain.Session, error) {
+	if payload.Type != "payment_received" {
+		return nil, ErrUnsupportedWebhookType
+	}
+
+	session, err := u.sessionRepository.FindByPaymentHash(ctx, payload.PaymentHash)
+	if err != nil {
+		return nil, err
+	}
+
+	switch session.Status {
+	case domain.SessionStatusPendingPayment:
+		// ok
+	case domain.SessionStatusCharging:
+		return session, nil
+	default:
+		return nil, ErrInvalidSessionState
+	}
+
+	now := time.Now()
+	expiredAt := now.Add(u.config.ChargingDuration)
+
+	err = u.sessionRepository.UpdatePaymentConfirmed(ctx, session.ID, now, expiredAt)
+	if err != nil {
+		return nil, err
+	}
+
+	session.Status = domain.SessionStatusCharging
+	session.StartedAt = &now
+	session.ExpiredAt = &expiredAt
+
+	return session, nil
+}
+
 func (u *Usecase) CheckSession(ctx context.Context, id int64) (*domain.Session, error) {
 	v := validator.New()
 	v.Must(id > 0, "id is required")

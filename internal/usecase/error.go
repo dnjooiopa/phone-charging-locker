@@ -9,5 +9,6 @@ var (
 	ErrSessionAlreadyPaid  = errors.New("session already paid")
 	ErrSessionExpired      = errors.New("session expired")
 	ErrInvalidSessionState   = errors.New("invalid session state")
-	ErrInvoiceCreationFailed = errors.New("invoice creation failed")
+	ErrInvoiceCreationFailed  = errors.New("invoice creation failed")
+	ErrUnsupportedWebhookType = errors.New("unsupported webhook type")
 )

@@ -17,6 +17,7 @@ func (s *Server) SetUpRoutes() {
 	r.POST("/lockers/:id/select", s.SelectLocker)
 	r.GET("/sessions/:id", s.CheckSession)
 	r.POST("/sessions/:id/confirm-payment", s.ConfirmPayment)
+	r.POST("/webhooks/phoenixd", s.HandleWebhook)
 }
 
 type LockerItem struct {
@@ -144,6 +145,34 @@ func (s *Server) ConfirmPayment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ConfirmPaymentResponse{
+		SessionID: session.ID,
+		Status:    session.Status,
+		StartedAt: session.StartedAt.Format(time.RFC3339),
+		ExpiredAt: session.ExpiredAt.Format(time.RFC3339),
+	})
+}
+
+type WebhookResponse struct {
+	SessionID int64              `json:"session_id"`
+	Status    domain.SessionStatus `json:"status"`
+	StartedAt string             `json:"started_at"`
+	ExpiredAt string             `json:"expired_at"`
+}
+
+func (s *Server) HandleWebhook(c *gin.Context) {
+	var payload usecase.WebhookPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.Error(err)
+		return
+	}
+
+	session, err := s.usecase.HandleWebhook(c.Request.Context(), &payload)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, WebhookResponse{
 		SessionID: session.ID,
 		Status:    session.Status,
 		StartedAt: session.StartedAt.Format(time.RFC3339),

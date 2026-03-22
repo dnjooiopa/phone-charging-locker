@@ -24,6 +24,7 @@ type SessionRepository interface {
 	UpdateStatus(ctx context.Context, id int64, status domain.SessionStatus) error
 	UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, paymentHash string) error
 	UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error
+	FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error)
 	FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error)
 }
 
