@@ -16,6 +16,7 @@ CREATE TABLE session (
     locker_id    bigint         NOT NULL REFERENCES locker(id),
     status       session_status NOT NULL DEFAULT 'pending_payment',
     qr_code_data text           NOT NULL DEFAULT '',
+    payment_hash text NOT NULL DEFAULT '',
     amount       bigint         NOT NULL DEFAULT 0,
     started_at   timestamptz,
     expired_at   timestamptz,

@@ -53,9 +53,18 @@ func (u *Usecase) SelectLocker(ctx context.Context, p *SelectLockerParams) (*Sel
 		return nil, err
 	}
 
-	qrData := fmt.Sprintf("PCL-PAY-%d", sessionID)
+	invoice, err := u.invoiceRepository.CreateInvoice(ctx, &CreateInvoiceParams{
+		Description: fmt.Sprintf("Phone Charging Locker - Session %d", sessionID),
+		AmountSat:   u.config.ChargingAmount,
+		ExternalID:  fmt.Sprintf("%d", sessionID),
+	})
+	if err != nil {
+		return nil, ErrInvoiceCreationFailed
+	}
 
-	err = u.sessionRepository.UpdateQRCodeData(ctx, sessionID, qrData)
+	qrData := invoice.Serialized
+
+	err = u.sessionRepository.UpdateInvoiceData(ctx, sessionID, qrData, invoice.PaymentHash)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +74,7 @@ func (u *Usecase) SelectLocker(ctx context.Context, p *SelectLockerParams) (*Sel
 		return nil, err
 	}
 
-	png, err := qrcode.Encode(qrData, qrcode.Medium, 256)
+	png, err := qrcode.Encode(qrData, qrcode.Low, 256)
 	if err != nil {
 		return nil, err
 	}

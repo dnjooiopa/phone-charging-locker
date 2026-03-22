@@ -22,13 +22,14 @@ func (s SessionStatus) Valid() bool {
 }
 
 type Session struct {
-	ID         int64         `json:"id"`
-	LockerID   int64         `json:"locker_id"`
-	Status     SessionStatus `json:"status"`
-	QRCodeData string        `json:"qr_code_data"`
-	Amount     int64         `json:"amount"`
-	StartedAt  *time.Time    `json:"started_at"`
-	ExpiredAt  *time.Time    `json:"expired_at"`
-	CreatedAt  time.Time     `json:"-"`
-	UpdatedAt  time.Time     `json:"-"`
+	ID          int64         `json:"id"`
+	LockerID    int64         `json:"locker_id"`
+	Status      SessionStatus `json:"status"`
+	QRCodeData  string        `json:"qr_code_data"`
+	PaymentHash string        `json:"payment_hash"`
+	Amount      int64         `json:"amount"`
+	StartedAt   *time.Time    `json:"started_at"`
+	ExpiredAt   *time.Time    `json:"expired_at"`
+	CreatedAt   time.Time     `json:"-"`
+	UpdatedAt   time.Time     `json:"-"`
 }

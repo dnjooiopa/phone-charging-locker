@@ -8,5 +8,6 @@ var (
 	ErrSessionNotFound     = errors.New("session not found")
 	ErrSessionAlreadyPaid  = errors.New("session already paid")
 	ErrSessionExpired      = errors.New("session expired")
-	ErrInvalidSessionState = errors.New("invalid session state")
+	ErrInvalidSessionState   = errors.New("invalid session state")
+	ErrInvoiceCreationFailed = errors.New("invoice creation failed")
 )

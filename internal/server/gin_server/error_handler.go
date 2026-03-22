@@ -65,6 +65,10 @@ func ErrorHandler() gin.HandlerFunc {
 				statusCode = http.StatusConflict
 				errorCode = "INVALID_SESSION_STATE"
 				message = "invalid session state"
+			case usecase.ErrInvoiceCreationFailed:
+				statusCode = http.StatusBadGateway
+				errorCode = "INVOICE_CREATION_FAILED"
+				message = "failed to create payment invoice"
 			default:
 				statusCode = http.StatusInternalServerError
 				errorCode = "INTERNAL_SERVER_ERROR"

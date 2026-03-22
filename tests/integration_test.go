@@ -26,7 +26,22 @@ import (
 	"github.com/dnjooiopa/phone-charging-locker/internal/server/gin_server"
 	"github.com/dnjooiopa/phone-charging-locker/internal/usecase"
 	"github.com/dnjooiopa/phone-charging-locker/schema"
+	"github.com/stretchr/testify/mock"
 )
+
+// MockInvoiceRepository is a mock implementation of usecase.InvoiceRepository for integration tests
+type MockInvoiceRepository struct {
+	mock.Mock
+}
+
+func (m *MockInvoiceRepository) CreateInvoice(ctx context.Context, params *usecase.CreateInvoiceParams) (*usecase.CreateInvoiceResult, error) {
+	args := m.Called(ctx, params)
+	var r0 *usecase.CreateInvoiceResult
+	if args.Get(0) != nil {
+		r0 = args.Get(0).(*usecase.CreateInvoiceResult)
+	}
+	return r0, args.Error(1)
+}
 
 type IntegrationTestSuite struct {
 	suite.Suite
@@ -80,6 +95,12 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	lockerRepository := locker_repository.NewPostgresDB()
 	sessionRepository := session_repository.NewPostgresDB()
 
+	invoiceRepo := &MockInvoiceRepository{}
+	invoiceRepo.On("CreateInvoice", mock.Anything, mock.AnythingOfType("*usecase.CreateInvoiceParams")).Return(&usecase.CreateInvoiceResult{
+		PaymentHash: "testhash123",
+		Serialized:  "lntb1u1testinvoice",
+	}, nil)
+
 	uc := usecase.New(
 		&usecase.Config{
 			ChargingDuration: 1 * time.Hour,
@@ -87,6 +108,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 		},
 		lockerRepository,
 		sessionRepository,
+		invoiceRepo,
 	)
 
 	server := gin_server.New(&gin_server.Config{
@@ -174,7 +196,7 @@ func (s *IntegrationTestSuite) TestSelectLocker_Success() {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	s.NoError(err)
 	s.Greater(result.SessionID, int64(0))
-	s.Contains(result.QRCodeData, "PCL-PAY-")
+	s.Equal("lntb1u1testinvoice", result.QRCodeData)
 	s.NotEmpty(result.QRCodePNG)
 
 	// Verify locker is now in_use

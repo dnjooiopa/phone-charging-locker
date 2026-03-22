@@ -49,6 +49,7 @@ func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Session, error) 
 			locker_id,
 			status,
 			qr_code_data,
+			payment_hash,
 			amount,
 			started_at,
 			expired_at,
@@ -61,6 +62,7 @@ func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Session, error) 
 		&session.LockerID,
 		&session.Status,
 		&session.QRCodeData,
+		&session.PaymentHash,
 		&session.Amount,
 		&session.StartedAt,
 		&session.ExpiredAt,
@@ -86,12 +88,12 @@ func (p *pgDB) UpdateStatus(ctx context.Context, id int64, status domain.Session
 	return err
 }
 
-func (p *pgDB) UpdateQRCodeData(ctx context.Context, id int64, qrCodeData string) error {
+func (p *pgDB) UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, paymentHash string) error {
 	_, err := pgctx.Exec(ctx, `
 		UPDATE session
-		SET qr_code_data = $1, updated_at = NOW()
-		WHERE id = $2
-	`, qrCodeData, id)
+		SET qr_code_data = $1, payment_hash = $2, updated_at = NOW()
+		WHERE id = $3
+	`, qrCodeData, paymentHash, id)
 	return err
 }
 
@@ -111,6 +113,7 @@ func (p *pgDB) FindExpiredChargingSessions(ctx context.Context, now time.Time) (
 			locker_id,
 			status,
 			qr_code_data,
+			payment_hash,
 			amount,
 			started_at,
 			expired_at,
@@ -133,6 +136,7 @@ func (p *pgDB) FindExpiredChargingSessions(ctx context.Context, now time.Time) (
 			&session.LockerID,
 			&session.Status,
 			&session.QRCodeData,
+			&session.PaymentHash,
 			&session.Amount,
 			&session.StartedAt,
 			&session.ExpiredAt,

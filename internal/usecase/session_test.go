@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -64,8 +65,8 @@ func (m *MockSessionRepository) UpdateStatus(ctx context.Context, id int64, stat
 	return args.Error(0)
 }
 
-func (m *MockSessionRepository) UpdateQRCodeData(ctx context.Context, id int64, qrCodeData string) error {
-	args := m.Called(ctx, id, qrCodeData)
+func (m *MockSessionRepository) UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, paymentHash string) error {
+	args := m.Called(ctx, id, qrCodeData, paymentHash)
 	return args.Error(0)
 }
 
@@ -79,6 +80,20 @@ func (m *MockSessionRepository) FindExpiredChargingSessions(ctx context.Context,
 	var r0 []*domain.Session
 	if args.Get(0) != nil {
 		r0 = args.Get(0).([]*domain.Session)
+	}
+	return r0, args.Error(1)
+}
+
+// MockInvoiceRepository is a mock implementation of InvoiceRepository
+type MockInvoiceRepository struct {
+	mock.Mock
+}
+
+func (m *MockInvoiceRepository) CreateInvoice(ctx context.Context, params *CreateInvoiceParams) (*CreateInvoiceResult, error) {
+	args := m.Called(ctx, params)
+	var r0 *CreateInvoiceResult
+	if args.Get(0) != nil {
+		r0 = args.Get(0).(*CreateInvoiceResult)
 	}
 	return r0, args.Error(1)
 }
@@ -121,6 +136,7 @@ func TestUsecase_SelectLocker(t *testing.T) {
 			params                *SelectLockerParams
 			mockLockerRepository  func(m *MockLockerRepository)
 			mockSessionRepository func(m *MockSessionRepository)
+			mockInvoiceRepository func(m *MockInvoiceRepository)
 			expectedError         error
 			expectResult          bool
 		}{
@@ -135,10 +151,32 @@ func TestUsecase_SelectLocker(t *testing.T) {
 				},
 				mockSessionRepository: func(m *MockSessionRepository) {
 					m.On("Create", mock.Anything, mock.AnythingOfType("*domain.Session")).Return(int64(1), nil)
-					m.On("UpdateQRCodeData", mock.Anything, int64(1), "PCL-PAY-1").Return(nil)
+					m.On("UpdateInvoiceData", mock.Anything, int64(1), "lntb1u1fake", "abc123hash").Return(nil)
+				},
+				mockInvoiceRepository: func(m *MockInvoiceRepository) {
+					m.On("CreateInvoice", mock.Anything, mock.AnythingOfType("*usecase.CreateInvoiceParams")).Return(&CreateInvoiceResult{
+						PaymentHash: "abc123hash",
+						Serialized:  "lntb1u1fake",
+					}, nil)
 				},
 				expectedError: nil,
 				expectResult:  true,
+			},
+			{
+				name:   "invoice creation failed",
+				params: &SelectLockerParams{LockerID: 1},
+				mockLockerRepository: func(m *MockLockerRepository) {
+					m.On("FindByID", mock.Anything, int64(1)).Return(&domain.Locker{
+						ID: 1, Name: "L-01", Status: domain.LockerStatusAvailable,
+					}, nil)
+				},
+				mockSessionRepository: func(m *MockSessionRepository) {
+					m.On("Create", mock.Anything, mock.AnythingOfType("*domain.Session")).Return(int64(1), nil)
+				},
+				mockInvoiceRepository: func(m *MockInvoiceRepository) {
+					m.On("CreateInvoice", mock.Anything, mock.AnythingOfType("*usecase.CreateInvoiceParams")).Return(nil, errors.New("connection refused"))
+				},
+				expectedError: ErrInvoiceCreationFailed,
 			},
 			{
 				name:   "locker not found",
@@ -173,12 +211,16 @@ func TestUsecase_SelectLocker(t *testing.T) {
 		for _, tc := range testCases {
 			lockerRepo := &MockLockerRepository{}
 			sessionRepo := &MockSessionRepository{}
+			invoiceRepo := &MockInvoiceRepository{}
 
 			if tc.mockLockerRepository != nil {
 				tc.mockLockerRepository(lockerRepo)
 			}
 			if tc.mockSessionRepository != nil {
 				tc.mockSessionRepository(sessionRepo)
+			}
+			if tc.mockInvoiceRepository != nil {
+				tc.mockInvoiceRepository(invoiceRepo)
 			}
 
 			uc := &Usecase{
@@ -188,6 +230,7 @@ func TestUsecase_SelectLocker(t *testing.T) {
 				},
 				lockerRepository:  lockerRepo,
 				sessionRepository: sessionRepo,
+				invoiceRepository:    invoiceRepo,
 			}
 
 			t.Run(tc.name, func(t *testing.T) {
@@ -200,7 +243,7 @@ func TestUsecase_SelectLocker(t *testing.T) {
 					assert.NoError(t, err)
 					require.NotNil(t, result)
 					assert.Equal(t, int64(1), result.SessionID)
-					assert.Equal(t, "PCL-PAY-1", result.QRCodeData)
+					assert.Equal(t, "lntb1u1fake", result.QRCodeData)
 					assert.NotEmpty(t, result.QRCodePNG)
 				}
 			})
