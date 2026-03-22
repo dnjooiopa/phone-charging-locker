@@ -41,6 +41,7 @@ type CreateInvoiceResult struct {
 
 type InvoiceRepository interface {
 	CreateInvoice(ctx context.Context, params *CreateInvoiceParams) (*CreateInvoiceResult, error)
+	RegisterWebhookEndpoint(ctx context.Context, webhookURL string) error
 }
 
 type Usecase struct {

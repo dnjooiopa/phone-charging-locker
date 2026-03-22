@@ -29,6 +29,7 @@ type Config struct {
 	ChargingAmount     int64
 	PhoenixdProxyURL   string
 	PhoenixdProxyAPIKey string
+	WebhookURL         string
 }
 
 func newConfig() *Config {
@@ -43,6 +44,7 @@ func newConfig() *Config {
 		ChargingAmount:     cfg.Int64Default("CHARGING_AMOUNT", 2000),
 		PhoenixdProxyURL:   cfg.String("PHOENIXD_PROXY_URL"),
 		PhoenixdProxyAPIKey: cfg.String("PHOENIXD_PROXY_API_KEY"),
+		WebhookURL:         cfg.String("WEBHOOK_URL"),
 	}
 }
 
@@ -74,6 +76,11 @@ func main() {
 		sessionRepository,
 		invoiceRepository,
 	)
+
+	if err := invoiceRepository.RegisterWebhookEndpoint(context.Background(), cfg.WebhookURL); err != nil {
+		log.Fatalf("failed to register webhook endpoint: %v", err)
+	}
+	log.Println("webhook endpoint registered")
 
 	server := gin_server.New(&gin_server.Config{
 		Environment: cfg.Environment,

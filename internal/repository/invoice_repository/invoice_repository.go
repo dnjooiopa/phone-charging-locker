@@ -76,3 +76,38 @@ func (c *phoenixdClient) CreateInvoice(ctx context.Context, params *usecase.Crea
 		Serialized:  result.Serialized,
 	}, nil
 }
+
+func (c *phoenixdClient) RegisterWebhookEndpoint(ctx context.Context, webhookURL string) error {
+	body, err := json.Marshal(map[string]string{
+		"url": webhookURL,
+	})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/endpoints", strings.NewReader(string(body)))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-KEY", c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusConflict {
+		// Already registered
+		return nil
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("phoenixd proxy returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}

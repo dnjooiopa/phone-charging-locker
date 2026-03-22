@@ -43,6 +43,11 @@ func (m *MockInvoiceRepository) CreateInvoice(ctx context.Context, params *useca
 	return r0, args.Error(1)
 }
 
+func (m *MockInvoiceRepository) RegisterWebhookEndpoint(ctx context.Context, webhookURL string) error {
+	args := m.Called(ctx, webhookURL)
+	return args.Error(0)
+}
+
 type IntegrationTestSuite struct {
 	suite.Suite
 	db          *sql.DB

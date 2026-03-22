@@ -98,6 +98,11 @@ type MockInvoiceRepository struct {
 	mock.Mock
 }
 
+func (m *MockInvoiceRepository) RegisterWebhookEndpoint(ctx context.Context, webhookURL string) error {
+	args := m.Called(ctx, webhookURL)
+	return args.Error(0)
+}
+
 func (m *MockInvoiceRepository) CreateInvoice(ctx context.Context, params *CreateInvoiceParams) (*CreateInvoiceResult, error) {
 	args := m.Called(ctx, params)
 	var r0 *CreateInvoiceResult
