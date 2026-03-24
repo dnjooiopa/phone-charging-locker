@@ -3,26 +3,22 @@ package tu
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
 	"flag"
-	"fmt"
-	"math"
-	"math/big"
 	"os"
+	"path/filepath"
 	"sync"
 
-	"github.com/acoshift/pgsql/pgctx"
+	_ "modernc.org/sqlite"
 
+	"github.com/dnjooiopa/phone-charging-locker/pkg/dbctx"
 	"github.com/dnjooiopa/phone-charging-locker/schema"
 )
 
 // Context is the test context contains test's dependencies
 type Context struct {
-	database       string
-	databaseSource string
-	pDB            *sql.DB
-	cleanupHooks   []func()
+	tmpDir       string
+	cleanupHooks []func()
 
 	DB *sql.DB
 }
@@ -36,23 +32,22 @@ func (ctx *Context) setup() {
 		}
 	}()
 
-	// prepare database
-	ctx.pDB, err = sql.Open("postgres", fmt.Sprintf(ctx.databaseSource, "postgres"))
-	if err != nil {
-		panic(err)
-	}
-	_, err = ctx.pDB.Exec(`create database ` + ctx.database)
+	ctx.tmpDir, err = os.MkdirTemp("", "pcl-tu-*")
 	if err != nil {
 		panic(err)
 	}
 
-	defer func() {
-		if err != nil {
-			ctx.Teardown()
-		}
-	}()
+	dbPath := filepath.Join(ctx.tmpDir, "test.db")
+	ctx.DB, err = sql.Open("sqlite", dbPath)
+	if err != nil {
+		panic(err)
+	}
 
-	ctx.DB, err = sql.Open("postgres", fmt.Sprintf(ctx.databaseSource, ctx.database))
+	_, err = ctx.DB.Exec("PRAGMA journal_mode=WAL")
+	if err != nil {
+		panic(err)
+	}
+	_, err = ctx.DB.Exec("PRAGMA foreign_keys=ON")
 	if err != nil {
 		panic(err)
 	}
@@ -73,30 +68,21 @@ func (ctx *Context) Teardown() {
 		ctx.DB.Close()
 	}
 
-	if ctx.pDB != nil {
-		ctx.pDB.Exec(`drop database if exists ` + ctx.database)
-		ctx.pDB.Close()
+	if ctx.tmpDir != "" {
+		os.RemoveAll(ctx.tmpDir)
 	}
 }
 
 func (ctx *Context) Ctx() context.Context {
 	c := context.Background()
-	c = pgctx.NewContext(c, ctx.DB)
+	c = dbctx.NewContext(c, ctx.DB)
 	return c
 }
 
 // Setup setups test dependencies
 func Setup() *Context {
-	ctx := &Context{
-		database:       fmt.Sprintf("test_%d", randInt()),
-		databaseSource: os.Getenv("TEST_DB_URL"),
-	}
-
-	if ctx.databaseSource == "" {
-		panic("TEST_DB_URL env required")
-	}
+	ctx := &Context{}
 	ctx.setup()
-
 	return ctx
 }
 
@@ -110,12 +96,4 @@ func InTest() bool {
 		inTest = flag.Lookup("test.v") != nil
 	})
 	return inTest
-}
-
-func randInt() int {
-	n, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		panic(err)
-	}
-	return int(n.Int64())
 }

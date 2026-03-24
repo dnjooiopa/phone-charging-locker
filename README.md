@@ -11,21 +11,21 @@ cmd/pcl/              → Entry point, dependency injection
 internal/
   domain/             → Entity structs (Locker, Session)
   usecase/            → Business logic, repository interfaces
-  repository/         → PostgreSQL implementations
+  repository/         → SQLite implementations
   server/gin_server/  → HTTP handlers, routes, middleware
 schema/               → Database migrations (embedded SQL)
+pkg/dbctx/            → Database context helpers
 pkg/tu/               → Test utilities
-tests/                → Integration tests (testcontainers)
+tests/                → Integration tests
 ```
 
 ## Tech Stack
 
 - **Language:** Go
 - **HTTP Framework:** Gin
-- **Database:** PostgreSQL
-- **Query Builder:** acoshift/pgsql (pgctx)
+- **Database:** SQLite (modernc.org/sqlite, pure Go)
 - **QR Code:** skip2/go-qrcode
-- **Testing:** testify, testcontainers-go
+- **Testing:** testify
 
 ## Flow
 
@@ -126,9 +126,7 @@ curl -s http://localhost:8080/sessions/1
 
 ### Prerequisites
 
-- Go 1.26+
-- PostgreSQL 17+
-- Docker (for integration tests)
+- Go 1.25+
 
 ### Environment Variables
 
@@ -137,7 +135,7 @@ curl -s http://localhost:8080/sessions/1
 | ENVIRONMENT        | Runtime environment                 | development            |
 | HOST               | Server bind host                    | 0.0.0.0                |
 | PORT               | Server bind port                    | 8080                   |
-| DB_URL             | PostgreSQL connection string        | -                      |
+| DB_PATH            | SQLite database file path           | ./data/pcl.db          |
 | CHARGING_DURATION  | Charging session duration           | 1h                     |
 | CHARGING_AMOUNT    | Charging amount in satang           | 2000 (20 THB)          |
 
@@ -157,9 +155,9 @@ go build -o .build/pcl ./cmd/pcl
 
 ### Database
 
-Schema migrations run automatically on startup. The initial migration creates:
-- `locker` table with status enum (available, in_use, maintenance)
-- `session` table with status enum (pending_payment, charging, completed, expired)
+Schema migrations run automatically on startup. The SQLite database file is created automatically at the configured `DB_PATH`. The initial migration creates:
+- `locker` table with status (available, in_use, maintenance)
+- `session` table with status (pending_payment, charging, completed, expired)
 
 ### Docker
 
@@ -180,10 +178,10 @@ make test-unit-cover
 # Unit tests with HTML coverage report
 make test-unit-coverage
 
-# Schema migration test (requires Docker)
+# Schema migration test
 make test-schema
 
-# Integration tests (requires Docker)
+# Integration tests
 make test-integration
 ```
 

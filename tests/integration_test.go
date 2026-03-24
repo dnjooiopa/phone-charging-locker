@@ -14,19 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"contrib.go.opencensus.io/integrations/ocsql"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	_ "modernc.org/sqlite"
 
 	"github.com/dnjooiopa/phone-charging-locker/internal/repository/locker_repository"
 	"github.com/dnjooiopa/phone-charging-locker/internal/repository/session_repository"
 	"github.com/dnjooiopa/phone-charging-locker/internal/server/gin_server"
 	"github.com/dnjooiopa/phone-charging-locker/internal/usecase"
 	"github.com/dnjooiopa/phone-charging-locker/schema"
-	"github.com/stretchr/testify/mock"
 )
 
 // MockInvoiceRepository is a mock implementation of usecase.InvoiceRepository for integration tests
@@ -50,38 +47,28 @@ func (m *MockInvoiceRepository) RegisterWebhookEndpoint(ctx context.Context, web
 
 type IntegrationTestSuite struct {
 	suite.Suite
-	db          *sql.DB
-	server      *gin_server.Server
-	pgContainer *postgres.PostgresContainer
+	db     *sql.DB
+	server *gin_server.Server
+	dbPath string
 }
 
 // SetupSuite runs once before all tests in the suite
 func (s *IntegrationTestSuite) SetupSuite() {
 	ctx := context.Background()
 
-	// Start PostgreSQL container
-	pgContainer, err := postgres.Run(ctx,
-		"postgres:17-alpine",
-		postgres.WithDatabase("test_db"),
-		postgres.WithUsername("test_user"),
-		postgres.WithPassword("test_password"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(30*time.Second),
-		),
-	)
+	// Create temp SQLite database
+	tmpDir, err := os.MkdirTemp("", "pcl-test-*")
 	require.NoError(s.T(), err)
-	s.pgContainer = pgContainer
+	s.dbPath = filepath.Join(tmpDir, "test.db")
 
-	// Get connection string
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	db, err := sql.Open("sqlite", s.dbPath)
 	require.NoError(s.T(), err)
 
-	// Open database connection
-	driver, _ := ocsql.Register("postgres")
-	db, err := sql.Open(driver, connStr)
+	_, err = db.Exec("PRAGMA journal_mode=WAL")
 	require.NoError(s.T(), err)
+	_, err = db.Exec("PRAGMA foreign_keys=ON")
+	require.NoError(s.T(), err)
+
 	require.NoError(s.T(), db.Ping())
 	s.db = db
 
@@ -97,8 +84,8 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	require.NoError(s.T(), err)
 
 	// Initialize server
-	lockerRepository := locker_repository.NewPostgresDB()
-	sessionRepository := session_repository.NewPostgresDB()
+	lockerRepository := locker_repository.New()
+	sessionRepository := session_repository.New()
 
 	invoiceRepo := &MockInvoiceRepository{}
 	invoiceRepo.On("CreateInvoice", mock.Anything, mock.AnythingOfType("*usecase.CreateInvoiceParams")).Return(&usecase.CreateInvoiceResult{
@@ -130,8 +117,8 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	if s.db != nil {
 		s.db.Close()
 	}
-	if s.pgContainer != nil {
-		s.pgContainer.Terminate(context.Background())
+	if s.dbPath != "" {
+		os.RemoveAll(filepath.Dir(s.dbPath))
 	}
 }
 
@@ -422,7 +409,7 @@ func (s *IntegrationTestSuite) TestCheckSession_AutoExpire() {
 	s.Equal(http.StatusOK, confirmResp.Code)
 
 	// Manually set expired_at to the past to simulate expiry
-	_, err = s.db.Exec("UPDATE session SET expired_at = NOW() - INTERVAL '1 hour' WHERE id = $1", selectResult.SessionID)
+	_, err = s.db.Exec("UPDATE session SET expired_at = datetime('now', '-1 hour') WHERE id = ?", selectResult.SessionID)
 	s.NoError(err)
 
 	// Check session - should auto-expire

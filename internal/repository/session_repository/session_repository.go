@@ -6,44 +6,42 @@ import (
 	"errors"
 	"time"
 
-	"github.com/acoshift/pgsql/pgctx"
-
+	"github.com/dnjooiopa/phone-charging-locker/pkg/dbctx"
 	"github.com/dnjooiopa/phone-charging-locker/internal/domain"
 	"github.com/dnjooiopa/phone-charging-locker/internal/usecase"
 )
 
-type pgDB struct{}
+type sqliteDB struct{}
 
-func NewPostgresDB() usecase.SessionRepository {
-	return &pgDB{}
+func New() usecase.SessionRepository {
+	return &sqliteDB{}
 }
 
-func (p *pgDB) Create(ctx context.Context, session *domain.Session) (int64, error) {
-	var id int64
-	err := pgctx.QueryRow(ctx, `
+func (p *sqliteDB) Create(ctx context.Context, session *domain.Session) (int64, error) {
+	result, err := dbctx.Exec(ctx, `
 		INSERT INTO session (
 			locker_id,
 			status,
 			amount
 		) VALUES (
-			$1,
-			$2,
-			$3
-		) RETURNING id
+			?,
+			?,
+			?
+		)
 	`,
 		session.LockerID,
 		session.Status,
 		session.Amount,
-	).Scan(&id)
+	)
 	if err != nil {
 		return 0, err
 	}
-	return id, nil
+	return result.LastInsertId()
 }
 
-func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Session, error) {
+func (p *sqliteDB) FindByID(ctx context.Context, id int64) (*domain.Session, error) {
 	var session domain.Session
-	err := pgctx.QueryRow(ctx, `
+	err := dbctx.QueryRow(ctx, `
 		SELECT
 			id,
 			locker_id,
@@ -56,7 +54,7 @@ func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Session, error) 
 			created_at,
 			updated_at
 		FROM session
-		WHERE id = $1
+		WHERE id = ?
 	`, id).Scan(
 		&session.ID,
 		&session.LockerID,
@@ -79,36 +77,36 @@ func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Session, error) 
 	return &session, nil
 }
 
-func (p *pgDB) UpdateStatus(ctx context.Context, id int64, status domain.SessionStatus) error {
-	_, err := pgctx.Exec(ctx, `
+func (p *sqliteDB) UpdateStatus(ctx context.Context, id int64, status domain.SessionStatus) error {
+	_, err := dbctx.Exec(ctx, `
 		UPDATE session
-		SET status = $1, updated_at = NOW()
-		WHERE id = $2
+		SET status = ?, updated_at = datetime('now')
+		WHERE id = ?
 	`, status, id)
 	return err
 }
 
-func (p *pgDB) UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, paymentHash string) error {
-	_, err := pgctx.Exec(ctx, `
+func (p *sqliteDB) UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, paymentHash string) error {
+	_, err := dbctx.Exec(ctx, `
 		UPDATE session
-		SET qr_code_data = $1, payment_hash = $2, updated_at = NOW()
-		WHERE id = $3
+		SET qr_code_data = ?, payment_hash = ?, updated_at = datetime('now')
+		WHERE id = ?
 	`, qrCodeData, paymentHash, id)
 	return err
 }
 
-func (p *pgDB) UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error {
-	_, err := pgctx.Exec(ctx, `
+func (p *sqliteDB) UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error {
+	_, err := dbctx.Exec(ctx, `
 		UPDATE session
-		SET status = 'charging', started_at = $1, expired_at = $2, updated_at = NOW()
-		WHERE id = $3
+		SET status = 'charging', started_at = ?, expired_at = ?, updated_at = datetime('now')
+		WHERE id = ?
 	`, startedAt, expiredAt, id)
 	return err
 }
 
-func (p *pgDB) FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error) {
+func (p *sqliteDB) FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error) {
 	var session domain.Session
-	err := pgctx.QueryRow(ctx, `
+	err := dbctx.QueryRow(ctx, `
 		SELECT
 			id,
 			locker_id,
@@ -121,7 +119,7 @@ func (p *pgDB) FindByPaymentHash(ctx context.Context, paymentHash string) (*doma
 			created_at,
 			updated_at
 		FROM session
-		WHERE payment_hash = $1
+		WHERE payment_hash = ?
 	`, paymentHash).Scan(
 		&session.ID,
 		&session.LockerID,
@@ -144,8 +142,8 @@ func (p *pgDB) FindByPaymentHash(ctx context.Context, paymentHash string) (*doma
 	return &session, nil
 }
 
-func (p *pgDB) FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error) {
-	rows, err := pgctx.Query(ctx, `
+func (p *sqliteDB) FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error) {
+	rows, err := dbctx.Query(ctx, `
 		SELECT
 			id,
 			locker_id,
@@ -159,7 +157,7 @@ func (p *pgDB) FindExpiredChargingSessions(ctx context.Context, now time.Time) (
 			updated_at
 		FROM session
 		WHERE status = 'charging'
-		AND expired_at < $1
+		AND expired_at < ?
 	`, now)
 	if err != nil {
 		return nil, err

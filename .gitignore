@@ -35,3 +35,4 @@ go.work.sum
 *.log
 .zed
 .DS_Store
+tmp

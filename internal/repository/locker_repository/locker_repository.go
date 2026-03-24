@@ -5,20 +5,19 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/acoshift/pgsql/pgctx"
-
+	"github.com/dnjooiopa/phone-charging-locker/pkg/dbctx"
 	"github.com/dnjooiopa/phone-charging-locker/internal/domain"
 	"github.com/dnjooiopa/phone-charging-locker/internal/usecase"
 )
 
-type pgDB struct{}
+type sqliteDB struct{}
 
-func NewPostgresDB() usecase.LockerRepository {
-	return &pgDB{}
+func New() usecase.LockerRepository {
+	return &sqliteDB{}
 }
 
-func (p *pgDB) FindAll(ctx context.Context) ([]*domain.Locker, error) {
-	rows, err := pgctx.Query(ctx, `
+func (p *sqliteDB) FindAll(ctx context.Context) ([]*domain.Locker, error) {
+	rows, err := dbctx.Query(ctx, `
 		SELECT
 			id,
 			name,
@@ -52,9 +51,9 @@ func (p *pgDB) FindAll(ctx context.Context) ([]*domain.Locker, error) {
 	return lockers, rows.Err()
 }
 
-func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Locker, error) {
+func (p *sqliteDB) FindByID(ctx context.Context, id int64) (*domain.Locker, error) {
 	var locker domain.Locker
-	err := pgctx.QueryRow(ctx, `
+	err := dbctx.QueryRow(ctx, `
 		SELECT
 			id,
 			name,
@@ -62,7 +61,7 @@ func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Locker, error) {
 			created_at,
 			updated_at
 		FROM locker
-		WHERE id = $1
+		WHERE id = ?
 	`, id).Scan(
 		&locker.ID,
 		&locker.Name,
@@ -80,11 +79,11 @@ func (p *pgDB) FindByID(ctx context.Context, id int64) (*domain.Locker, error) {
 	return &locker, nil
 }
 
-func (p *pgDB) UpdateStatus(ctx context.Context, id int64, status domain.LockerStatus) error {
-	_, err := pgctx.Exec(ctx, `
+func (p *sqliteDB) UpdateStatus(ctx context.Context, id int64, status domain.LockerStatus) error {
+	_, err := dbctx.Exec(ctx, `
 		UPDATE locker
-		SET status = $1, updated_at = NOW()
-		WHERE id = $2
+		SET status = ?, updated_at = datetime('now')
+		WHERE id = ?
 	`, status, id)
 	return err
 }
