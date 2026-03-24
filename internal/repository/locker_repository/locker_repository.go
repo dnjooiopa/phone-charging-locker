@@ -4,16 +4,30 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
-	"github.com/dnjooiopa/phone-charging-locker/pkg/dbctx"
 	"github.com/dnjooiopa/phone-charging-locker/internal/domain"
 	"github.com/dnjooiopa/phone-charging-locker/internal/usecase"
+	"github.com/dnjooiopa/phone-charging-locker/pkg/dbctx"
 )
 
 type sqliteDB struct{}
 
 func New() usecase.LockerRepository {
 	return &sqliteDB{}
+}
+
+func (p *sqliteDB) Create(ctx context.Context, name string) (int64, error) {
+	result, err := dbctx.Exec(ctx, `
+		INSERT INTO locker (name) VALUES (?)
+	`, name)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return 0, usecase.ErrLockerNameAlreadyExists
+		}
+		return 0, err
+	}
+	return result.LastInsertId()
 }
 
 func (p *sqliteDB) FindAll(ctx context.Context) ([]*domain.Locker, error) {

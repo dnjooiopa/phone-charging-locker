@@ -13,6 +13,7 @@ type Config struct {
 }
 
 type LockerRepository interface {
+	Create(ctx context.Context, name string) (int64, error)
 	FindAll(ctx context.Context) ([]*domain.Locker, error)
 	FindByID(ctx context.Context, id int64) (*domain.Locker, error)
 	UpdateStatus(ctx context.Context, id int64, status domain.LockerStatus) error

@@ -150,6 +150,68 @@ func (s *IntegrationTestSuite) TestHealthCheck() {
 }
 
 // ============================================
+// CREATE LOCKER TESTS
+// ============================================
+
+func (s *IntegrationTestSuite) TestCreateLocker_Success() {
+	resp := s.makeRequest("POST", "/lockers", map[string]string{
+		"name": "L-NEW",
+	})
+	s.Equal(http.StatusCreated, resp.Code)
+
+	var result struct {
+		ID     int64  `json:"id"`
+		Name   string `json:"name"`
+		Status string `json:"status"`
+	}
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	s.NoError(err)
+	s.Greater(result.ID, int64(0))
+	s.Equal("L-NEW", result.Name)
+	s.Equal("available", result.Status)
+
+	// Cleanup
+	_, err = s.db.Exec("DELETE FROM locker WHERE name = 'L-NEW'")
+	s.NoError(err)
+}
+
+func (s *IntegrationTestSuite) TestCreateLocker_DuplicateName() {
+	// L-01 already exists in seed data
+	resp := s.makeRequest("POST", "/lockers", map[string]string{
+		"name": "L-01",
+	})
+	s.Equal(http.StatusConflict, resp.Code)
+
+	var result struct {
+		ErrorCode    string `json:"error_code"`
+		ErrorMessage string `json:"error_message"`
+	}
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	s.NoError(err)
+	s.Equal("LOCKER_NAME_ALREADY_EXISTS", result.ErrorCode)
+}
+
+func (s *IntegrationTestSuite) TestCreateLocker_EmptyName() {
+	resp := s.makeRequest("POST", "/lockers", map[string]string{
+		"name": "",
+	})
+	s.Equal(http.StatusBadRequest, resp.Code)
+
+	var result struct {
+		ErrorCode    string `json:"error_code"`
+		ErrorMessage string `json:"error_message"`
+	}
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	s.NoError(err)
+	s.Equal("VALIDATION_ERROR", result.ErrorCode)
+}
+
+func (s *IntegrationTestSuite) TestCreateLocker_MissingBody() {
+	resp := s.makeRequest("POST", "/lockers", nil)
+	s.Equal(http.StatusInternalServerError, resp.Code)
+}
+
+// ============================================
 // LIST LOCKERS TESTS
 // ============================================
 

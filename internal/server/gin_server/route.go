@@ -13,11 +13,44 @@ import (
 
 func (s *Server) SetUpRoutes() {
 	r := s.router.Group("")
+	r.POST("/lockers", s.CreateLocker)
 	r.GET("/lockers", s.ListLockers)
 	r.POST("/lockers/:id/select", s.SelectLocker)
 	r.GET("/sessions/:id", s.CheckSession)
 	r.POST("/sessions/:id/confirm-payment", s.ConfirmPayment)
 	r.POST("/webhooks/phoenixd", s.HandleWebhook)
+}
+
+type CreateLockerRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateLockerResponse struct {
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+func (s *Server) CreateLocker(c *gin.Context) {
+	var req CreateLockerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	result, err := s.usecase.CreateLocker(c.Request.Context(), &usecase.CreateLockerParams{
+		Name: req.Name,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, CreateLockerResponse{
+		ID:     result.Locker.ID,
+		Name:   result.Locker.Name,
+		Status: string(result.Locker.Status),
+	})
 }
 
 type LockerItem struct {

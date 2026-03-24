@@ -41,6 +41,10 @@ func ErrorHandler() gin.HandlerFunc {
 			message = validateError.Error()
 		} else {
 			switch err {
+			case usecase.ErrLockerNameAlreadyExists:
+				statusCode = http.StatusConflict
+				errorCode = "LOCKER_NAME_ALREADY_EXISTS"
+				message = "locker name already exists"
 			case usecase.ErrLockerNotFound:
 				statusCode = http.StatusNotFound
 				errorCode = "LOCKER_NOT_FOUND"

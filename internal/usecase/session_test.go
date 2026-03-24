@@ -18,6 +18,11 @@ type MockLockerRepository struct {
 	mock.Mock
 }
 
+func (m *MockLockerRepository) Create(ctx context.Context, name string) (int64, error) {
+	args := m.Called(ctx, name)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func (m *MockLockerRepository) FindAll(ctx context.Context) ([]*domain.Locker, error) {
 	args := m.Called(ctx)
 	var r0 []*domain.Locker
