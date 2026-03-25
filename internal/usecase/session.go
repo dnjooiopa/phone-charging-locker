@@ -131,10 +131,10 @@ func (u *Usecase) ConfirmPayment(ctx context.Context, p *ConfirmPaymentParams) (
 }
 
 type WebhookPayload struct {
-	Type        string `json:"type"`
-	Timestamp   int64  `json:"timestamp"`
-	AmountSat   int64  `json:"amountSat"`
-	PaymentHash string `json:"paymentHash"`
+	Type        string  `json:"type"`
+	Timestamp   int64   `json:"timestamp"`
+	AmountSat   int64   `json:"amountSat"`
+	PaymentHash string  `json:"paymentHash"`
 	ExternalID  *string `json:"externalId"`
 	PayerNote   *string `json:"payerNote"`
 	PayerKey    *string `json:"payerKey"`
