@@ -1,6 +1,6 @@
 module github.com/dnjooiopa/phone-charging-locker
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/acoshift/configfile v1.9.0
