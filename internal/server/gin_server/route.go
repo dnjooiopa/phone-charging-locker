@@ -18,7 +18,7 @@ func (s *Server) SetUpRoutes() {
 	r.POST("/lockers/:id/select", s.SelectLocker)
 	r.GET("/sessions/:id", s.CheckSession)
 	r.POST("/sessions/:id/confirm-payment", s.ConfirmPayment)
-	r.POST("/webhooks/phoenixd", s.HandleWebhook)
+	r.POST("/webhook/phoenixd", s.HandleWebhook)
 }
 
 type CreateLockerRequest struct {
@@ -113,13 +113,13 @@ func (s *Server) SelectLocker(c *gin.Context) {
 }
 
 type CheckSessionResponse struct {
-	ID         int64              `json:"id"`
-	LockerID   int64              `json:"locker_id"`
+	ID         int64                `json:"id"`
+	LockerID   int64                `json:"locker_id"`
 	Status     domain.SessionStatus `json:"status"`
-	QRCodeData string             `json:"qr_code_data"`
-	Amount     int64              `json:"amount"`
-	StartedAt  *string            `json:"started_at"`
-	ExpiredAt  *string            `json:"expired_at"`
+	QRCodeData string               `json:"qr_code_data"`
+	Amount     int64                `json:"amount"`
+	StartedAt  *string              `json:"started_at"`
+	ExpiredAt  *string              `json:"expired_at"`
 }
 
 func (s *Server) CheckSession(c *gin.Context) {
@@ -156,10 +156,10 @@ func (s *Server) CheckSession(c *gin.Context) {
 }
 
 type ConfirmPaymentResponse struct {
-	SessionID int64              `json:"session_id"`
+	SessionID int64                `json:"session_id"`
 	Status    domain.SessionStatus `json:"status"`
-	StartedAt string             `json:"started_at"`
-	ExpiredAt string             `json:"expired_at"`
+	StartedAt string               `json:"started_at"`
+	ExpiredAt string               `json:"expired_at"`
 }
 
 func (s *Server) ConfirmPayment(c *gin.Context) {
@@ -186,10 +186,10 @@ func (s *Server) ConfirmPayment(c *gin.Context) {
 }
 
 type WebhookResponse struct {
-	SessionID int64              `json:"session_id"`
+	SessionID int64                `json:"session_id"`
 	Status    domain.SessionStatus `json:"status"`
-	StartedAt string             `json:"started_at"`
-	ExpiredAt string             `json:"expired_at"`
+	StartedAt string               `json:"started_at"`
+	ExpiredAt string               `json:"expired_at"`
 }
 
 func (s *Server) HandleWebhook(c *gin.Context) {
