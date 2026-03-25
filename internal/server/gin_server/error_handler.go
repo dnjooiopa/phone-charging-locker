@@ -2,7 +2,6 @@ package gin_server
 
 import (
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,8 +24,6 @@ func ErrorHandler() gin.HandlerFunc {
 		}
 
 		err := c.Errors.Last().Err
-
-		log.Printf("error: %v", err)
 
 		var (
 			statusCode int

@@ -113,6 +113,7 @@ func main() {
 	server := gin_server.New(&gin_server.Config{
 		Environment: cfg.Environment,
 	}, uc)
+	server.Use(gin_server.LoggerMiddleware())
 	server.Use(gin.Recovery())
 	server.Use(gin_server.ErrorHandler())
 	server.Use(gin_server.DatabaseMiddleware(db))
