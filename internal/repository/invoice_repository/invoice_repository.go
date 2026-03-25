@@ -43,7 +43,7 @@ func (c *phoenixdClient) CreateInvoice(ctx context.Context, params *usecase.Crea
 		form.Set("externalId", params.ExternalID)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/createinvoice", strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/phoenixd/proxy/createinvoice", strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
 	}
