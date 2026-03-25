@@ -40,12 +40,27 @@ tests/                → Integration tests
 | Method | Path                              | Description                  |
 |--------|-----------------------------------|------------------------------|
 | GET    | `/healthz`                        | Health check                 |
+| POST   | `/lockers`                        | Create a new locker          |
 | GET    | `/lockers`                        | List all lockers with status |
 | POST   | `/lockers/:id/select`             | Select locker, get QR code   |
 | GET    | `/sessions/:id`                   | Check session status         |
 | POST   | `/sessions/:id/confirm-payment`   | Confirm payment (stub)       |
 
 ### Examples
+
+**Create a locker**
+```bash
+curl -s -X POST http://localhost:8080/lockers \
+  -H "Content-Type: application/json" \
+  -d '{"name": "L-01"}'
+```
+```json
+{
+  "id": 1,
+  "name": "L-01",
+  "status": "available"
+}
+```
 
 **List all lockers**
 ```bash
@@ -114,6 +129,7 @@ curl -s http://localhost:8080/sessions/1
 | Error Code             | HTTP Status | Description               |
 |------------------------|-------------|---------------------------|
 | VALIDATION_ERROR       | 400         | Invalid request params    |
+| LOCKER_NAME_ALREADY_EXISTS | 409     | Locker name already taken |
 | LOCKER_NOT_FOUND       | 404         | Locker does not exist     |
 | LOCKER_NOT_AVAILABLE   | 409         | Locker is in use/maint.   |
 | SESSION_NOT_FOUND      | 404         | Session does not exist    |
