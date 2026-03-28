@@ -1,7 +1,7 @@
 package gin_server
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,10 +20,10 @@ func LoggerMiddleware() gin.HandlerFunc {
 
 		if len(c.Errors) > 0 {
 			for _, e := range c.Errors {
-				log.Printf("[ERROR] %d | %13v | %s %s | %s", status, latency, method, path, e.Err)
+				slog.Error("request error", "status", status, "latency", latency, "method", method, "path", path, "error", e.Err)
 			}
 		} else {
-			log.Printf("[INFO] %d | %13v | %s %s", status, latency, method, path)
+			slog.Info("request", "status", status, "latency", latency, "method", method, "path", path)
 		}
 	}
 }
