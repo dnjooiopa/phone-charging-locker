@@ -42,6 +42,7 @@ tests/                → Integration tests
 | GET    | `/healthz`                        | Health check                 |
 | POST   | `/lockers`                        | Create a new locker          |
 | GET    | `/lockers`                        | List all lockers with status |
+| DELETE | `/lockers/:id`                    | Delete locker and sessions   |
 | POST   | `/lockers/:id/select`             | Select locker, get QR code   |
 | GET    | `/sessions/:id`                   | Check session status         |
 | POST   | `/sessions/:id/confirm-payment`   | Confirm payment (stub)       |
@@ -75,6 +76,12 @@ curl -s http://localhost:8080/lockers
   ]
 }
 ```
+
+**Delete a locker**
+```bash
+curl -s -X DELETE http://localhost:8080/lockers/1
+```
+Returns `204 No Content` on success. Deletes the locker and all related sessions.
 
 **Select a locker**
 ```bash

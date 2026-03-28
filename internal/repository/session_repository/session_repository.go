@@ -187,3 +187,10 @@ func (p *sqliteDB) FindExpiredChargingSessions(ctx context.Context, now time.Tim
 
 	return sessions, rows.Err()
 }
+
+func (p *sqliteDB) DeleteByLockerID(ctx context.Context, lockerID int64) error {
+	_, err := dbctx.Exec(ctx, `
+		DELETE FROM session WHERE locker_id = ?
+	`, lockerID)
+	return err
+}

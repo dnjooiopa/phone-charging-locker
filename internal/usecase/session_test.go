@@ -46,6 +46,11 @@ func (m *MockLockerRepository) UpdateStatus(ctx context.Context, id int64, statu
 	return args.Error(0)
 }
 
+func (m *MockLockerRepository) Delete(ctx context.Context, id int64) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 // MockSessionRepository is a mock implementation of SessionRepository
 type MockSessionRepository struct {
 	mock.Mock
@@ -96,6 +101,11 @@ func (m *MockSessionRepository) FindExpiredChargingSessions(ctx context.Context,
 		r0 = args.Get(0).([]*domain.Session)
 	}
 	return r0, args.Error(1)
+}
+
+func (m *MockSessionRepository) DeleteByLockerID(ctx context.Context, lockerID int64) error {
+	args := m.Called(ctx, lockerID)
+	return args.Error(0)
 }
 
 // MockInvoiceRepository is a mock implementation of InvoiceRepository

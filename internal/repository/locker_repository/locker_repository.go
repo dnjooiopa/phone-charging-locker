@@ -101,3 +101,10 @@ func (p *sqliteDB) UpdateStatus(ctx context.Context, id int64, status domain.Loc
 	`, status, id)
 	return err
 }
+
+func (p *sqliteDB) Delete(ctx context.Context, id int64) error {
+	_, err := dbctx.Exec(ctx, `
+		DELETE FROM locker WHERE id = ?
+	`, id)
+	return err
+}

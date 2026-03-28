@@ -17,6 +17,7 @@ type LockerRepository interface {
 	FindAll(ctx context.Context) ([]*domain.Locker, error)
 	FindByID(ctx context.Context, id int64) (*domain.Locker, error)
 	UpdateStatus(ctx context.Context, id int64, status domain.LockerStatus) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type SessionRepository interface {
@@ -27,6 +28,7 @@ type SessionRepository interface {
 	UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error
 	FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error)
 	FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error)
+	DeleteByLockerID(ctx context.Context, lockerID int64) error
 }
 
 type CreateInvoiceParams struct {

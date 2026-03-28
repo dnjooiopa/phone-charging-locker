@@ -46,3 +46,38 @@ func (u *Usecase) CreateLocker(ctx context.Context, params *CreateLockerParams) 
 func (u *Usecase) ListLockers(ctx context.Context) ([]*domain.Locker, error) {
 	return u.lockerRepository.FindAll(ctx)
 }
+
+type DeleteLockerParams struct {
+	LockerID int64
+}
+
+func (p *DeleteLockerParams) Valid() error {
+	v := validator.New()
+	v.Must(p.LockerID > 0, "locker_id is required")
+	return v.Error()
+}
+
+func (u *Usecase) DeleteLocker(ctx context.Context, params *DeleteLockerParams) error {
+	if err := params.Valid(); err != nil {
+		slog.Error("DeleteLocker: invalid params", "error", err)
+		return err
+	}
+
+	_, err := u.lockerRepository.FindByID(ctx, params.LockerID)
+	if err != nil {
+		slog.Error("DeleteLocker: failed to find locker", "error", err, "id", params.LockerID)
+		return err
+	}
+
+	if err := u.sessionRepository.DeleteByLockerID(ctx, params.LockerID); err != nil {
+		slog.Error("DeleteLocker: failed to delete sessions", "error", err, "locker_id", params.LockerID)
+		return err
+	}
+
+	if err := u.lockerRepository.Delete(ctx, params.LockerID); err != nil {
+		slog.Error("DeleteLocker: failed to delete locker", "error", err, "id", params.LockerID)
+		return err
+	}
+
+	return nil
+}

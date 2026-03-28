@@ -15,6 +15,7 @@ func (s *Server) SetUpRoutes() {
 	r := s.router.Group("")
 	r.POST("/lockers", s.CreateLocker)
 	r.GET("/lockers", s.ListLockers)
+	r.DELETE("/lockers/:id", s.DeleteLocker)
 	r.POST("/lockers/:id/select", s.SelectLocker)
 	r.GET("/sessions/:id", s.CheckSession)
 	r.POST("/sessions/:id/confirm-payment", s.ConfirmPayment)
@@ -51,6 +52,24 @@ func (s *Server) CreateLocker(c *gin.Context) {
 		Name:   result.Locker.Name,
 		Status: string(result.Locker.Status),
 	})
+}
+
+func (s *Server) DeleteLocker(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	err = s.usecase.DeleteLocker(c.Request.Context(), &usecase.DeleteLockerParams{
+		LockerID: id,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 type LockerItem struct {
