@@ -128,15 +128,11 @@ func (u *Usecase) ConfirmPayment(ctx context.Context, p *ConfirmPaymentParams) (
 	now := time.Now()
 	expiredAt := now.Add(u.config.ChargingDuration)
 
-	err = u.sessionRepository.UpdatePaymentConfirmed(ctx, session.ID, now, expiredAt)
+	session, err = u.sessionRepository.UpdatePaymentConfirmed(ctx, session.ID, domain.SessionStatusCharging, now, expiredAt)
 	if err != nil {
 		slog.Error("ConfirmPayment: failed to update payment confirmed", "error", err, "sessionID", session.ID)
 		return nil, err
 	}
-
-	session.Status = domain.SessionStatusCharging
-	session.StartedAt = &now
-	session.ExpiredAt = &expiredAt
 
 	return session, nil
 }
@@ -176,15 +172,11 @@ func (u *Usecase) HandleWebhook(ctx context.Context, payload *WebhookPayload) (*
 	now := time.Now()
 	expiredAt := now.Add(u.config.ChargingDuration)
 
-	err = u.sessionRepository.UpdatePaymentConfirmed(ctx, session.ID, now, expiredAt)
+	session, err = u.sessionRepository.UpdatePaymentConfirmed(ctx, session.ID, domain.SessionStatusCharging, now, expiredAt)
 	if err != nil {
 		slog.Error("HandleWebhook: failed to update payment confirmed", "error", err, "sessionID", session.ID)
 		return nil, err
 	}
-
-	session.Status = domain.SessionStatusCharging
-	session.StartedAt = &now
-	session.ExpiredAt = &expiredAt
 
 	return session, nil
 }

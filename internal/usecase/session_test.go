@@ -80,9 +80,12 @@ func (m *MockSessionRepository) UpdateInvoiceData(ctx context.Context, id int64,
 	return args.Error(0)
 }
 
-func (m *MockSessionRepository) UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error {
-	args := m.Called(ctx, id, startedAt, expiredAt)
-	return args.Error(0)
+func (m *MockSessionRepository) UpdatePaymentConfirmed(ctx context.Context, id int64, status domain.SessionStatus, startedAt, expiredAt time.Time) (*domain.Session, error) {
+	args := m.Called(ctx, id, status, startedAt, expiredAt)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Session), args.Error(1)
 }
 
 func (m *MockSessionRepository) FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error) {
@@ -328,7 +331,15 @@ func TestUsecase_ConfirmPayment(t *testing.T) {
 						LockerID: 1,
 						Status:   domain.SessionStatusPendingPayment,
 					}, nil)
-					m.On("UpdatePaymentConfirmed", mock.Anything, int64(1), mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return(nil)
+					now := time.Now()
+					expiredAt := now.Add(time.Hour)
+					m.On("UpdatePaymentConfirmed", mock.Anything, int64(1), domain.SessionStatusCharging, mock.AnythingOfType("time.Time"), mock.AnythingOfType("time.Time")).Return(&domain.Session{
+						ID:        1,
+						LockerID:  1,
+						Status:    domain.SessionStatusCharging,
+						StartedAt: &now,
+						ExpiredAt: &expiredAt,
+					}, nil)
 				},
 				expectedError: nil,
 			},

@@ -25,7 +25,7 @@ type SessionRepository interface {
 	FindByID(ctx context.Context, id int64) (*domain.Session, error)
 	UpdateStatus(ctx context.Context, id int64, status domain.SessionStatus) error
 	UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, paymentHash string) error
-	UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error
+	UpdatePaymentConfirmed(ctx context.Context, id int64, status domain.SessionStatus, startedAt, expiredAt time.Time) (*domain.Session, error)
 	FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error)
 	FindExpiredChargingSessions(ctx context.Context, now time.Time) ([]*domain.Session, error)
 	DeleteByLockerID(ctx context.Context, lockerID int64) error

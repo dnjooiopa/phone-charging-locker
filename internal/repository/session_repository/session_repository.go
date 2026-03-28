@@ -95,13 +95,17 @@ func (p *sqliteDB) UpdateInvoiceData(ctx context.Context, id int64, qrCodeData, 
 	return err
 }
 
-func (p *sqliteDB) UpdatePaymentConfirmed(ctx context.Context, id int64, startedAt, expiredAt time.Time) error {
+func (p *sqliteDB) UpdatePaymentConfirmed(ctx context.Context, id int64, status domain.SessionStatus, startedAt, expiredAt time.Time) (*domain.Session, error) {
 	_, err := dbctx.Exec(ctx, `
 		UPDATE session
-		SET status = 'charging', started_at = ?, expired_at = ?, updated_at = datetime('now')
+		SET status = ?, started_at = ?, expired_at = ?, updated_at = datetime('now')
 		WHERE id = ?
-	`, startedAt, expiredAt, id)
-	return err
+	`, status, startedAt, expiredAt, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.FindByID(ctx, id)
 }
 
 func (p *sqliteDB) FindByPaymentHash(ctx context.Context, paymentHash string) (*domain.Session, error) {
