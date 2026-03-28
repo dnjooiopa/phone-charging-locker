@@ -153,6 +153,7 @@ type WebhookPayload struct {
 
 func (u *Usecase) HandleWebhook(ctx context.Context, payload *WebhookPayload) (*domain.Session, error) {
 	if payload.Type != "payment_received" {
+		slog.Error("HandleWebhook: unsupported webhook type", "type", payload.Type)
 		return nil, ErrUnsupportedWebhookType
 	}
 
@@ -168,6 +169,7 @@ func (u *Usecase) HandleWebhook(ctx context.Context, payload *WebhookPayload) (*
 	case domain.SessionStatusCharging:
 		return session, nil
 	default:
+		slog.Error("HandleWebhook: invalid session status", "status", session.Status)
 		return nil, ErrInvalidSessionState
 	}
 
